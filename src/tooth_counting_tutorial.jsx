@@ -370,14 +370,14 @@ cv2.waitKey(0)
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-function Stars({ value, max = 5 }) {
+function Stars({ value, max = 5, color = "#f59e0b" }) {
   return (
     <span style={{ display: "inline-flex", gap: 2 }}>
       {Array.from({ length: max }).map((_, i) => (
         <span
           key={i}
           style={{
-            color: i < value ? "#f59e0b" : "#374151",
+            color: i < value ? color : "#1e293b",
             fontSize: 13,
           }}
         >
@@ -424,7 +424,7 @@ function drawGear(ctx, cx, cy, R, r, teeth, color, edgeColor, rotation = 0) {
 // ─────────────────────────────────────────────────────────────────────────────
 // GEAR CANVAS
 // ─────────────────────────────────────────────────────────────────────────────
-function GearCanvas({ viz }) {
+function GearCanvas({ viz, animated = true }) {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
   const frameRef = useRef(0);
@@ -434,7 +434,7 @@ function GearCanvas({ viz }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const W = canvas.width, H = canvas.height;
-    const t = (frameRef.current += 1);
+    const t = animated ? (frameRef.current += 1) : 100;
 
     // clear
     ctx.clearRect(0, 0, W, H);
@@ -696,8 +696,10 @@ function GearCanvas({ viz }) {
       );
     }
 
-    animRef.current = requestAnimationFrame(animate);
-  }, [viz]);
+    if (animated) {
+      animRef.current = requestAnimationFrame(animate);
+    }
+  }, [viz, animated]);
 
   useEffect(() => {
     frameRef.current = 0;
@@ -718,121 +720,45 @@ function GearCanvas({ viz }) {
     />
   );
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPARE TABLE
+// METHOD CARD
 // ─────────────────────────────────────────────────────────────────────────────
-function CompareTable() {
+function MethodCard({ m, selected, onClick }) {
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table
+    <button
+      onClick={onClick}
+      style={{
+        background: selected ? "#1e293b" : "#0d1424",
+        border: selected ? "1px solid #38bdf8" : "1px solid #1e293b",
+        borderRadius: 10,
+        padding: "10px 12px",
+        cursor: "pointer",
+        textAlign: "left",
+        transition: "all 0.15s",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      <div
         style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: 13,
-          color: "#cbd5e1",
+          width: 28, height: 28, borderRadius: "50%",
+          background: m.tagColor + "22",
+          border: `2px solid ${m.tagColor}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 12, fontWeight: 800, color: m.tagColor, flexShrink: 0,
         }}
       >
-        <thead>
-          <tr style={{ background: "#0f2137" }}>
-            {["方法", "難度", "速度", "準確度", "適合場景"].map((h) => (
-              <th
-                key={h}
-                style={{
-                  padding: "8px 10px",
-                  textAlign: "left",
-                  color: "#38bdf8",
-                  fontWeight: 600,
-                  borderBottom: "1px solid #1e3a5f",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {METHODS.map((m, i) => (
-            <tr
-              key={m.id}
-              style={{ background: i % 2 === 0 ? "#060d1a" : "#081525" }}
-            >
-              <td style={{ padding: "7px 10px", fontWeight: 500, color: "#e2e8f0" }}>
-                {m.name}
-              </td>
-              <td style={{ padding: "7px 10px" }}>
-                <Stars value={m.difficulty} />
-              </td>
-              <td style={{ padding: "7px 10px" }}>
-                <Stars value={m.speed} />
-              </td>
-              <td style={{ padding: "7px 10px" }}>
-                <Stars value={m.accuracy} />
-              </td>
-              <td style={{ padding: "7px 10px", color: "#94a3b8", fontSize: 12 }}>
-                {m.id === 1 && "高精度量產檢測"}
-                {m.id === 2 && "清晰邊緣、低噪影像"}
-                {m.id === 3 && "快速粗估、低對比影像"}
-                {m.id === 4 && "週期性分析、研究用途"}
-                {m.id === 5 && "已知齒形、小批量"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Decision flowchart */}
-      <div style={{ marginTop: 24 }}>
-        <div
-          style={{
-            color: "#38bdf8",
-            fontWeight: 600,
-            marginBottom: 12,
-            fontSize: 14,
-          }}
-        >
-          決策流程圖
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, fontSize: 12 }}>
-          {[
-            { q: "能準確找到齒輪圓心？", yes: "→ 極座標展開 + 峰值偵測 ✓（最推薦）", no: "↓ 否" },
-            { q: "輪廓清晰、低噪音？", yes: "→ 輪廓凸性缺陷", no: "↓ 否" },
-            { q: "需要快速粗估？", yes: "→ 徑向剖面峰值", no: "↓ 否" },
-            { q: "需要頻域分析？", yes: "→ Canny + FFT 頻率分析", no: "↓ 否" },
-            { q: "有已知齒形模板？", yes: "→ 模板齒形匹配", no: "→ 重新評估條件或人工輔助" },
-          ].map((row, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                gap: 8,
-                alignItems: "flex-start",
-                marginBottom: 6,
-              }}
-            >
-              <div
-                style={{
-                  background: "#0f2137",
-                  border: "1px solid #1e3a5f",
-                  borderRadius: 6,
-                  padding: "5px 10px",
-                  color: "#94a3b8",
-                  minWidth: 155,
-                  flexShrink: 0,
-                }}
-              >
-                {`${i + 1}. ${row.q}`}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <span style={{ color: "#10b981" }}>{row.yes}</span>
-                <span style={{ color: "#64748b" }}>{row.no}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        {m.id}
       </div>
-    </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: selected ? "#e2e8f0" : "#94a3b8", lineHeight: 1.3 }}>
+          {m.name}
+        </div>
+        <div style={{ fontSize: 10, color: "#475569" }}>{m.eng}</div>
+      </div>
+    </button>
   );
 }
 
@@ -840,393 +766,301 @@ function CompareTable() {
 // MAIN APP
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [activeId, setActiveId] = useState(1);
-  const [tab, setTab] = useState("概念");
+  const [selected, setSelected] = useState(METHODS[0]); // 預設「極座標展開 + 峰值偵測」（推薦）
+  const [tab, setTab] = useState("concept");
+  const [animating, setAnimating] = useState(true);
 
-  const method = METHODS.find((m) => m.id === activeId);
+  const tabs = [
+    { key: "concept", label: "📖 概念" },
+    { key: "code",    label: "💻 程式碼" },
+    { key: "compare", label: "📊 比較" },
+  ];
 
-  const tabStyle = (t) => ({
-    padding: "6px 18px",
-    borderRadius: 6,
-    cursor: "pointer",
-    fontWeight: tab === t ? 700 : 400,
-    fontSize: 13,
-    background: tab === t ? "#1e3a5f" : "transparent",
-    color: tab === t ? "#38bdf8" : "#64748b",
-    border: tab === t ? "1px solid #38bdf8" : "1px solid transparent",
-    transition: "all 0.2s",
-  });
+  const scenarios = [
+    "高精度量產檢測",
+    "清晰邊緣、低噪音影像",
+    "快速粗估、低對比影像",
+    "週期性分析、研究用途",
+    "已知齒形、小批量",
+  ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        background: "#060d1a",
-        color: "#e2e8f0",
-        fontFamily: "'Noto Sans TC', 'Segoe UI', sans-serif",
-        overflow: "hidden",
-      }}
-    >
-      {/* ── LEFT SIDEBAR ── */}
-      <div
-        style={{
-          width: 240,
-          flexShrink: 0,
-          borderRight: "1px solid #1e3a5f",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* header */}
-        <div
-          style={{
-            padding: "16px 14px 12px",
-            borderBottom: "1px solid #1e3a5f",
-          }}
-        >
-          <div style={{ fontSize: 11, color: "#38bdf8", letterSpacing: 1, marginBottom: 4 }}>
-            數位影像處理 / 互動教學
+    <div style={{
+      minHeight: "100vh",
+      background: "#060d1a",
+      color: "#e2e8f0",
+      fontFamily: "'Noto Sans TC','Segoe UI', system-ui, sans-serif",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {/* ── Header ── */}
+      <div style={{
+        padding: "14px 20px 12px",
+        borderBottom: "1px solid #1e293b",
+        background: "linear-gradient(135deg,#0a0f1e,#10162a)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 26 }}>⚙️</div>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.02em" }}>
+                齒輪齒數計算
+                <span style={{ marginLeft: 8, fontSize: 11, background: "#14532d", color: "#86efac", padding: "2px 8px", borderRadius: 99, fontWeight: 600, verticalAlign: "middle" }}>
+                  傳統影像處理
+                </span>
+              </h1>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: "#475569" }}>
+                5 種方法 · 動態視覺化 · 完整 Python 程式碼
+              </p>
+            </div>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.35 }}>
-            齒輪齒數計數
+          <div style={{ textAlign: "right", lineHeight: 1.5 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>黃傑翔</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>國立雲林科技大學－電子工程系</div>
           </div>
-          <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
-            Gear Tooth Counting — 傳統方法比較
-          </div>
-          <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #1e3a5f", lineHeight: 1.5 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>黃傑翔</div>
-            <div style={{ fontSize: 10, color: "#64748b" }}>國立雲林科技大學－電子工程系</div>
-          </div>
-        </div>
-
-        {/* method cards */}
-        <div style={{ overflowY: "auto", flex: 1, padding: "8px 8px" }}>
-          {METHODS.map((m) => {
-            const active = m.id === activeId;
-            return (
-              <div
-                key={m.id}
-                onClick={() => { setActiveId(m.id); setTab("概念"); }}
-                style={{
-                  borderRadius: 8,
-                  padding: "10px 12px",
-                  marginBottom: 6,
-                  cursor: "pointer",
-                  background: active ? "#0f2137" : "transparent",
-                  border: active ? "1px solid #1e3a5f" : "1px solid transparent",
-                  transition: "all 0.2s",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      padding: "1px 6px",
-                      borderRadius: 4,
-                      background: m.tagColor + "22",
-                      color: m.tagColor,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {m.tag}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 13,
-                    color: active ? "#e2e8f0" : "#94a3b8",
-                    marginBottom: 2,
-                  }}
-                >
-                  {m.name}
-                </div>
-                <div style={{ fontSize: 10, color: "#64748b" }}>{m.eng}</div>
-                {active && (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
-                      gap: 4,
-                      fontSize: 10,
-                      color: "#64748b",
-                    }}
-                  >
-                    {[
-                      ["難度", m.difficulty],
-                      ["速度", m.speed],
-                      ["精度", m.accuracy],
-                    ].map(([label, val]) => (
-                      <div key={label} style={{ textAlign: "center" }}>
-                        <div style={{ marginBottom: 1 }}>{label}</div>
-                        <Stars value={val} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </div>
       </div>
 
-      {/* ── RIGHT PANEL ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* top bar */}
-        <div
-          style={{
-            padding: "14px 20px",
-            borderBottom: "1px solid #1e3a5f",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-          }}
-        >
-          <div>
-            <span
-              style={{
-                fontSize: 10,
-                padding: "2px 8px",
-                borderRadius: 4,
-                background: method.tagColor + "22",
-                color: method.tagColor,
-                fontWeight: 600,
-                marginRight: 8,
-              }}
-            >
-              {method.tag}
-            </span>
-            <span style={{ fontWeight: 700, fontSize: 16 }}>{method.name}</span>
-            <span style={{ color: "#64748b", fontSize: 13, marginLeft: 8 }}>
-              {method.eng}
-            </span>
+      {/* ── Body ── */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+
+        {/* ── 左側方法列表 ── */}
+        <div style={{
+          width: 195,
+          background: "#080e1c",
+          borderRight: "1px solid #1e293b",
+          padding: "10px 8px",
+          overflowY: "auto",
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 9, color: "#334155", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
+            選擇偵測方法
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {["概念", "程式碼", "比較"].map((t) => (
-              <button key={t} onClick={() => setTab(t)} style={tabStyle(t)}>
-                {t}
-              </button>
-            ))}
+          {METHODS.map(m => (
+            <div key={m.id} style={{ marginBottom: 6 }}>
+              <MethodCard
+                m={m}
+                selected={selected.id === m.id}
+                onClick={() => { setSelected(m); setTab("concept"); setAnimating(true); }}
+              />
+            </div>
+          ))}
+
+          {/* 場景說明 */}
+          <div style={{ marginTop: 16, padding: "10px", background: "#0d1424", borderRadius: 8, border: "1px solid #1e293b" }}>
+            <div style={{ fontSize: 9, color: "#38bdf8", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              測試場景
+            </div>
+            <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.6 }}>
+              單顆正齒輪<br />
+              齒數 n：{TEETH}<br />
+              外徑 R：{GR} px<br />
+              齒根 r：{Gr} px
+            </div>
           </div>
         </div>
 
-        {/* content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
-          {tab === "概念" && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "220px 1fr",
-                gap: 24,
-                alignItems: "start",
-              }}
-            >
-              {/* canvas */}
+        {/* ── 右側內容 ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+          {/* 方法標題 */}
+          <div style={{ padding: "14px 20px 10px", borderBottom: "1px solid #1e293b", background: "#0a1020" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: "50%",
+                background: selected.tagColor + "22",
+                border: `2px solid ${selected.tagColor}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 16, fontWeight: 800, color: selected.tagColor,
+              }}>
+                {selected.id}
+              </div>
               <div>
-                <GearCanvas viz={method.viz} key={method.viz} />
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 11,
-                    color: "#64748b",
-                    textAlign: "center",
-                  }}
-                >
-                  齒數 n = {TEETH}（動態示意）
+                <div style={{ fontSize: 15, fontWeight: 800 }}>{selected.name}</div>
+                <div style={{ fontSize: 11, color: "#475569" }}>{selected.eng}</div>
+              </div>
+              <span style={{
+                marginLeft: "auto",
+                fontSize: 10, fontWeight: 700,
+                background: selected.tagColor + "22",
+                color: selected.tagColor,
+                padding: "3px 10px", borderRadius: 99,
+              }}>
+                {selected.tag}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {tabs.map(t => (
+                <button key={t.key} onClick={() => setTab(t.key)} style={{
+                  padding: "4px 12px", borderRadius: 6, border: "none",
+                  cursor: "pointer", fontSize: 11, fontWeight: 600,
+                  background: tab === t.key ? "#38bdf8" : "#1e293b",
+                  color: tab === t.key ? "#0a1020" : "#64748b",
+                  transition: "all 0.15s",
+                }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 內容區 */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+
+            {/* ── 概念分頁 ── */}
+            {tab === "concept" && (
+              <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                  <GearCanvas viz={selected.viz} animated={animating} key={selected.viz + "-" + animating} />
+                  <button
+                    onClick={() => setAnimating(a => !a)}
+                    style={{
+                      background: "#1e293b", border: "1px solid #334155",
+                      color: "#94a3b8", borderRadius: 6, padding: "4px 14px",
+                      fontSize: 11, cursor: "pointer",
+                    }}
+                  >
+                    {animating ? "⏸ 暫停" : "▶ 播放"}
+                  </button>
+                </div>
+
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <p style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.8, marginTop: 0 }}>
+                    {selected.desc}
+                  </p>
+
+                  <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
+                    {[
+                      { label: "難易度", value: selected.difficulty, color: "#ef4444" },
+                      { label: "速度",   value: selected.speed,      color: "#f59e0b" },
+                      { label: "精度",   value: selected.accuracy,   color: "#10b981" },
+                    ].map(r => (
+                      <div key={r.label}>
+                        <div style={{ fontSize: 9, color: "#475569", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>{r.label}</div>
+                        <Stars value={r.value} color={r.color} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 9, color: "#475569", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>執行步驟</div>
+                    {selected.steps.map((step, i) => (
+                      <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                        <span style={{
+                          width: 20, height: 20, borderRadius: "50%",
+                          background: "#38bdf8", color: "#0a1020",
+                          fontSize: 10, fontWeight: 700,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
+                        }}>{i + 1}</span>
+                        <span style={{ color: "#cbd5e1", fontSize: 12, lineHeight: 1.6, paddingTop: 2 }}>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <div style={{ flex: 1, background: "#0d2018", border: "1px solid #14532d", borderRadius: 8, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: "#10b981", fontWeight: 700, marginBottom: 6 }}>✓ 優點</div>
+                      {selected.pros.map((p, i) => (
+                        <div key={i} style={{ color: "#6ee7b7", fontSize: 11, marginBottom: 3 }}>• {p}</div>
+                      ))}
+                    </div>
+                    <div style={{ flex: 1, background: "#1a0d0d", border: "1px solid #7f1d1d", borderRadius: 8, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: "#ef4444", fontWeight: 700, marginBottom: 6 }}>✗ 缺點</div>
+                      {selected.cons.map((c, i) => (
+                        <div key={i} style={{ color: "#fca5a5", fontSize: 11, marginBottom: 3 }}>• {c}</div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* info */}
+            {/* ── 程式碼分頁 ── */}
+            {tab === "code" && (
               <div>
-                {/* description */}
-                <div
-                  style={{
-                    background: "#0f2137",
-                    border: "1px solid #1e3a5f",
-                    borderRadius: 8,
-                    padding: "14px 16px",
-                    marginBottom: 16,
-                    fontSize: 14,
-                    lineHeight: 1.75,
-                    color: "#cbd5e1",
-                  }}
-                >
-                  {method.desc}
+                <div style={{ background: "#020817", borderRadius: 10, border: "1px solid #1e293b", overflow: "hidden" }}>
+                  <div style={{ padding: "8px 14px", background: "#0d1117", borderBottom: "1px solid #1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444", display: "inline-block" }} />
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                    <span style={{ marginLeft: 8, fontSize: 11, color: "#475569" }}>
+                      {selected.eng.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")}.py
+                    </span>
+                  </div>
+                  <pre style={{
+                    margin: 0, padding: "16px 18px",
+                    color: "#7dd3fc", fontSize: 12, lineHeight: 1.8,
+                    overflowX: "auto",
+                    fontFamily: "'Fira Code','Cascadia Code',monospace",
+                    whiteSpace: "pre",
+                  }}>
+                    {selected.code}
+                  </pre>
                 </div>
-
-                {/* steps */}
-                <div style={{ marginBottom: 16 }}>
-                  <div
-                    style={{
-                      color: "#38bdf8",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      marginBottom: 8,
-                    }}
-                  >
-                    處理步驟
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {method.steps.map((s, i) => (
-                      <div
-                        key={i}
-                        style={{ display: "flex", gap: 10, alignItems: "flex-start" }}
-                      >
-                        <span
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: "50%",
-                            background: "#1e3a5f",
-                            color: "#38bdf8",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {i + 1}
-                        </span>
-                        <span style={{ fontSize: 13, color: "#cbd5e1", paddingTop: 2 }}>
-                          {s}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* pros / cons */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      background: "#052813",
-                      border: "1px solid #064e3b",
-                      borderRadius: 8,
-                      padding: "10px 14px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "#10b981",
-                        fontWeight: 600,
-                        fontSize: 12,
-                        marginBottom: 8,
-                      }}
-                    >
-                      優點
-                    </div>
-                    {method.pros.map((p, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          fontSize: 12,
-                          color: "#a7f3d0",
-                          marginBottom: 4,
-                          display: "flex",
-                          gap: 6,
-                        }}
-                      >
-                        <span style={{ color: "#10b981" }}>✓</span>
-                        {p}
-                      </div>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      background: "#1a0510",
-                      border: "1px solid #4c0519",
-                      borderRadius: 8,
-                      padding: "10px 14px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "#f87171",
-                        fontWeight: 600,
-                        fontSize: 12,
-                        marginBottom: 8,
-                      }}
-                    >
-                      缺點
-                    </div>
-                    {method.cons.map((c, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          fontSize: 12,
-                          color: "#fca5a5",
-                          marginBottom: 4,
-                          display: "flex",
-                          gap: 6,
-                        }}
-                      >
-                        <span style={{ color: "#f87171" }}>✗</span>
-                        {c}
-                      </div>
-                    ))}
-                  </div>
+                <div style={{ marginTop: 10, padding: "10px 14px", background: "#0f172a", borderRadius: 8, border: "1px solid #1e293b", fontSize: 11, color: "#64748b" }}>
+                  💡 安裝依賴：<code style={{ color: "#7dd3fc" }}>pip install opencv-python numpy scipy matplotlib</code>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {tab === "程式碼" && (
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 11,
-                    background: "#1e3a5f",
-                    color: "#38bdf8",
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                  }}
-                >
-                  Python / OpenCV
-                </span>
-                <span style={{ fontSize: 12, color: "#64748b" }}>
-                  {method.name} — 完整實作範例
-                </span>
+            {/* ── 比較分頁 ── */}
+            {tab === "compare" && (
+              <div>
+                <div style={{ marginBottom: 12, fontSize: 13, color: "#94a3b8" }}>
+                  5 種方法的綜合評比（點擊列名可切換方法）
+                </div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #1e293b" }}>
+                        {["方法", "難易度", "速度", "精度", "適用場景"].map((h, i) => (
+                          <th key={h} style={{ padding: "8px 10px", textAlign: i === 0 || i === 4 ? "left" : "center", color: ["#475569","#ef4444","#f59e0b","#10b981","#475569"][i], fontWeight: 700, fontSize: 10, textTransform: "uppercase" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {METHODS.map((m, idx) => {
+                        const isSel = m.id === selected.id;
+                        return (
+                          <tr key={m.id} onClick={() => { setSelected(m); setTab("concept"); }}
+                            style={{ borderBottom: "1px solid #1e293b", background: isSel ? "#1a2035" : "transparent", cursor: "pointer" }}>
+                            <td style={{ padding: "10px" }}>
+                              <span style={{ fontWeight: isSel ? 700 : 400, color: isSel ? "#e2e8f0" : "#94a3b8" }}>{m.name}</span>
+                              {isSel && <span style={{ marginLeft: 6, fontSize: 9, color: "#38bdf8" }}>← 目前</span>}
+                            </td>
+                            <td style={{ padding: "10px", textAlign: "center" }}><Stars value={m.difficulty} color="#ef4444" /></td>
+                            <td style={{ padding: "10px", textAlign: "center" }}><Stars value={m.speed} color="#f59e0b" /></td>
+                            <td style={{ padding: "10px", textAlign: "center" }}><Stars value={m.accuracy} color="#10b981" /></td>
+                            <td style={{ padding: "10px", color: "#64748b", fontSize: 11 }}>{scenarios[idx]}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: 20, padding: "14px 16px", background: "#0d1424", borderRadius: 10, border: "1px solid #1e293b" }}>
+                  <div style={{ fontSize: 11, color: "#38bdf8", fontWeight: 700, marginBottom: 10 }}>🗺 方法選擇決策流程</div>
+                  {[
+                    { q: "能準確找到齒輪圓心？",   yes: "→ 極座標展開 + 峰值偵測（最推薦）" },
+                    { q: "輪廓清晰、低噪音？",     yes: "→ 輪廓凸性缺陷分析" },
+                    { q: "需要快速粗估？",         yes: "→ 徑向剖面峰值" },
+                    { q: "需要頻域 / 週期分析？",  yes: "→ Canny + FFT 頻率分析" },
+                    { q: "已有已知齒形樣板？",     yes: "→ 模板齒形匹配" },
+                  ].map((item, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+                      <span style={{ color: "#334155", fontSize: 11, minWidth: 18 }}>{i + 1}.</span>
+                      <div>
+                        <span style={{ color: "#94a3b8", fontSize: 12 }}>{item.q}</span>
+                        <span style={{ color: "#10b981", fontSize: 11, marginLeft: 8 }}>{item.yes}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <pre
-                style={{
-                  background: "#081525",
-                  border: "1px solid #1e3a5f",
-                  borderRadius: 10,
-                  padding: "18px 20px",
-                  fontSize: 12,
-                  lineHeight: 1.7,
-                  overflowX: "auto",
-                  color: "#e2e8f0",
-                  margin: 0,
-                  whiteSpace: "pre",
-                }}
-              >
-                {method.code}
-              </pre>
-            </div>
-          )}
-
-          {tab === "比較" && <CompareTable />}
+            )}
+          </div>
         </div>
       </div>
     </div>
