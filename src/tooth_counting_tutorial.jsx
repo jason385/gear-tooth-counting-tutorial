@@ -716,10 +716,32 @@ function GearCanvas({ viz, animated = true }) {
         borderRadius: 10,
         border: "1px solid #1e3a5f",
         display: "block",
+        maxWidth: "100%",
+        height: "auto",
       }}
     />
   );
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// RESPONSIVE HOOK
+// ─────────────────────────────────────────────────────────────────────────────
+function useBreakpoint() {
+  const [bp, setBp] = useState(() => {
+    if (typeof window === "undefined") return "desktop";
+    const w = window.innerWidth;
+    return w < 768 ? "mobile" : w < 1024 ? "tablet" : "desktop";
+  });
+  useEffect(() => {
+    const onResize = () => {
+      const w = window.innerWidth;
+      setBp(w < 768 ? "mobile" : w < 1024 ? "tablet" : "desktop");
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return bp;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // METHOD CARD
 // ─────────────────────────────────────────────────────────────────────────────
@@ -769,6 +791,9 @@ export default function App() {
   const [selected, setSelected] = useState(METHODS[0]); // 預設「極座標展開 + 峰值偵測」（推薦）
   const [tab, setTab] = useState("concept");
   const [animating, setAnimating] = useState(true);
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
+  const isTablet = bp === "tablet";
 
   const tabs = [
     { key: "concept", label: "📖 概念" },
@@ -795,49 +820,73 @@ export default function App() {
     }}>
       {/* ── Header ── */}
       <div style={{
-        padding: "14px 20px 12px",
+        padding: isMobile ? "10px 14px 8px" : "14px 20px 12px",
         borderBottom: "1px solid #1e293b",
         background: "linear-gradient(135deg,#0a0f1e,#10162a)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+        <div style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "flex-start" : "center",
+          gap: isMobile ? 6 : 10,
+          justifyContent: "space-between",
+        }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ fontSize: 26 }}>⚙️</div>
+            <div style={{ fontSize: isMobile ? 22 : 26 }}>⚙️</div>
             <div>
-              <h1 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.02em" }}>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 15 : 17, fontWeight: 800, letterSpacing: "-0.02em" }}>
                 齒輪齒數計算
-                <span style={{ marginLeft: 8, fontSize: 11, background: "#14532d", color: "#86efac", padding: "2px 8px", borderRadius: 99, fontWeight: 600, verticalAlign: "middle" }}>
+                <span style={{ marginLeft: 8, fontSize: isMobile ? 10 : 11, background: "#14532d", color: "#86efac", padding: "2px 8px", borderRadius: 99, fontWeight: 600, verticalAlign: "middle" }}>
                   傳統影像處理
                 </span>
               </h1>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: "#475569" }}>
+              <p style={{ margin: "2px 0 0", fontSize: isMobile ? 11 : 12, color: "#475569" }}>
                 5 種方法 · 動態視覺化 · 完整 Python 程式碼
               </p>
             </div>
           </div>
-          <div style={{ textAlign: "right", lineHeight: 1.5 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>黃傑翔</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>國立雲林科技大學－電子工程系</div>
+          <div style={{ textAlign: isMobile ? "left" : "right", lineHeight: 1.5 }}>
+            <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 700, color: "#e2e8f0" }}>黃傑翔</div>
+            <div style={{ fontSize: isMobile ? 10 : 11, color: "#64748b" }}>國立雲林科技大學－電子工程系</div>
           </div>
         </div>
       </div>
 
       {/* ── Body ── */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        flex: 1,
+        overflow: isMobile ? "visible" : "hidden",
+        minHeight: 0,
+      }}>
 
         {/* ── 左側方法列表 ── */}
         <div style={{
-          width: 195,
           background: "#080e1c",
-          borderRight: "1px solid #1e293b",
-          padding: "10px 8px",
-          overflowY: "auto",
           flexShrink: 0,
+          ...(isMobile ? {
+            width: "100%",
+            borderBottom: "1px solid #1e293b",
+            padding: "8px",
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            overflowY: "hidden",
+          } : {
+            width: isTablet ? 170 : 195,
+            borderRight: "1px solid #1e293b",
+            padding: "10px 8px",
+            overflowY: "auto",
+          }),
         }}>
-          <div style={{ fontSize: 9, color: "#334155", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
-            選擇偵測方法
-          </div>
+          {!isMobile && (
+            <div style={{ fontSize: 9, color: "#334155", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
+              選擇偵測方法
+            </div>
+          )}
           {METHODS.map(m => (
-            <div key={m.id} style={{ marginBottom: 6 }}>
+            <div key={m.id} style={isMobile ? { flexShrink: 0, width: 175 } : { marginBottom: 6 }}>
               <MethodCard
                 m={m}
                 selected={selected.id === m.id}
@@ -846,26 +895,28 @@ export default function App() {
             </div>
           ))}
 
-          {/* 場景說明 */}
-          <div style={{ marginTop: 16, padding: "10px", background: "#0d1424", borderRadius: 8, border: "1px solid #1e293b" }}>
-            <div style={{ fontSize: 9, color: "#38bdf8", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              測試場景
+          {/* 場景說明（手機版隱藏） */}
+          {!isMobile && (
+            <div style={{ marginTop: 16, padding: "10px", background: "#0d1424", borderRadius: 8, border: "1px solid #1e293b" }}>
+              <div style={{ fontSize: 9, color: "#38bdf8", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                測試場景
+              </div>
+              <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.6 }}>
+                單顆正齒輪<br />
+                齒數 n：{TEETH}<br />
+                外徑 R：{GR} px<br />
+                齒根 r：{Gr} px
+              </div>
             </div>
-            <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.6 }}>
-              單顆正齒輪<br />
-              齒數 n：{TEETH}<br />
-              外徑 R：{GR} px<br />
-              齒根 r：{Gr} px
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── 右側內容 ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: isMobile ? "visible" : "hidden", minWidth: 0 }}>
 
           {/* 方法標題 */}
-          <div style={{ padding: "14px 20px 10px", borderBottom: "1px solid #1e293b", background: "#0a1020" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <div style={{ padding: isMobile ? "10px 14px 8px" : "14px 20px 10px", borderBottom: "1px solid #1e293b", background: "#0a1020" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
               <div style={{
                 width: 36, height: 36, borderRadius: "50%",
                 background: selected.tagColor + "22",
@@ -905,7 +956,7 @@ export default function App() {
           </div>
 
           {/* 內容區 */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+          <div style={{ flex: 1, overflowY: isMobile ? "visible" : "auto", padding: isMobile ? "12px 14px" : "16px 20px" }}>
 
             {/* ── 概念分頁 ── */}
             {tab === "concept" && (
